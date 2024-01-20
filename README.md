@@ -45,6 +45,8 @@ while true; do
     nc -l -p "$PORT" -c "read -r request; response=\$(convert_rest_to_soap \"\$request\"); echo -e \"HTTP/1.1 200 OK\nContent-Length: \${#response}\n\n\$response\""
 done
 ```
+Este script convierte los parámetros de la solicitud REST en el formato SOAP deseado y los envía como respuesta.
+
 El comando qanterior de `netcat` que se encuentra en sistemas basados en GNU/Linux y utiliza la opción `-c` para ejecutar comandos al recibir una conexión. Sin embargo, en la implementación de `netcat` que se encuentra en sistemas BSD, como `netcat-openbsd`, no se admite la opción `-c` para ejecutar comandos en la misma línea.
 
 Para lograr un comportamiento similar en `netcat-openbsd`, puedes usar una solución basada en un bucle infinito con `while`. Aquí está el equivalente utilizando `netcat-openbsd`:
@@ -84,7 +86,53 @@ done
 ```
 Este script logra un resultado similar utilizando el bucle `while` para recibir la solicitud REST y luego responder con la conversión SOAP correspondiente.
 
-Este script convierte los parámetros de la solicitud REST en el formato SOAP deseado y los envía como respuesta.
+En mi caso el paquete que tengo instalado es `netcat-openbsd-1.89-92.3.1.x86_64`. La implementación de `netcat` en OpenBSD es conocida por no admitir la opción `-c` para ejecutar comandos directamente. En su lugar, se puede usar una tubería y un bucle `while` para lograr un comportamiento similar.
+
+```bash
+#!/bin/bash
+
+# Configura el puerto en el que escuchará el script (por ejemplo, puerto 8080)
+PORT=8080
+
+# Función para convertir solicitud REST a SOAP
+convert_rest_to_soap() {
+    # Implementa aquí la lógica de conversión de REST a SOAP
+    # Debes manipular la cadena XML según tus necesidades
+
+    # Ejemplo: Conversión simple de JSON a XML
+    soap_request=$(cat <<EOL
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
+  <soapenv:Header/>
+  <soapenv:Body>
+    <sms:SendSms xmlns:sms="http://example.com/sms">
+      <sms:message>Hello, SMS Gateway!</sms:message>
+    </sms:SendSms>
+  </soapenv:Body>
+</soapenv:Envelope>
+EOL
+)
+
+    echo "$soap_request"
+}
+
+# Inicia el servidor web Bash en el puerto especificado con netcat-openbsd
+while true; do
+    # Escucha en el puerto y procesa las solicitudes
+    {
+        while IFS= read -r line; do
+            if [ -z "$request" ]; then
+                request="$line"
+            else
+                request="$request$line"
+            fi
+        done
+        response=$(convert_rest_to_soap "$request")
+        echo -ne "HTTP/1.1 200 OK\r\nContent-Length: ${#response}\r\n\r\n$response"
+    } | nc -l -p "$PORT"
+done
+```
+Este script debería funcionar con la implementación de `netcat` en OpenBSD, ya que utiliza un bucle `while` para recibir la solicitud REST y luego responder con la conversión SOAP correspondiente. Asegúrate de que el contenido de la función `convert_rest_to_soap()` esté configurado correctamente según tus necesidades específicas.
+
 
 **Paso 3: Ejecutar el Script Bash**
 

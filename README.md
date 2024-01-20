@@ -1,6 +1,5 @@
 # api-to-soap-shell
 
-```markdown
 # Configurar un Gateway REST a SOAP con Bash
 
 En este tutorial, aprenderás cómo configurar un script de Bash simple como un gateway entre Micro Focus Advanced Authentication Framework (AAF) y una pasarela SMS para realizar la conversión de solicitudes REST a solicitudes SOAP.
@@ -73,4 +72,50 @@ Configura AAF para enviar sus solicitudes REST al puerto y la dirección del ser
 Envía una solicitud REST desde AAF al puerto donde se ejecuta el script Bash. El script debería recibir la solicitud, convertirla en SOAP y enviarla a la pasarela SMS.
 
 Ten en cuenta que este es un ejemplo muy simplificado y no aborda cuestiones como la seguridad, el manejo de errores, la escalabilidad ni la gestión de solicitudes concurrentes. En un entorno de producción, es preferible utilizar una solución más robusta y escalable para esta integración.
+
+**Paso 6: Agregar el Script como un Servicio en Linux**
+
+Para agregar el script como un servicio en Linux y habilitarlo en el arranque, sigue estos pasos:
+
+1. Crea un archivo de servicio systemd. Por ejemplo, crea un archivo llamado `rest_to_soap_gateway.service` en el directorio `/etc/systemd/system/` con el siguiente contenido:
+
+```ini
+[Unit]
+Description=Script para convertir solicitudes REST en SOAP
+
+[Service]
+ExecStart=/ruta/al/script/rest_to_soap_gateway.sh
+Restart=always
+User=usuario
+Group=grupo
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=rest_to_soap_gateway
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Asegúrate de reemplazar `/ruta/al/script/rest_to_soap_gateway.sh` con la ruta completa hacia tu script y de especificar el usuario y el grupo bajo los cuales deseas que se ejecute el servicio.
+
+2. Guarda el archivo y luego recarga la configuración del sistema systemd:
+
+```bash
+sudo systemctl daemon-reload
+```
+
+3. Habilita el servicio para que se inicie automáticamente en el inicio del sistema:
+
+```bash
+sudo systemctl enable rest_to_soap_gateway.service
+```
+
+4. Inicia el servicio:
+
+```bash
+sudo systemctl start rest_to_soap_gateway.service
+```
+
+Ahora, el script se ejecutará como un servicio en el inicio del sistema y escuchará en el puerto configurado para convertir las solicitudes REST en solicitudes SOAP.
+
 ```

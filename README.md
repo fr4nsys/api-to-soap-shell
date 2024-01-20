@@ -46,7 +46,6 @@ while true; do
     nc -l -p "$PORT" -c "read -r request; response=\$(convert_rest_to_soap \"\$request\"); echo -e \"HTTP/1.1 200 OK\nContent-Length: \${#response}\n\n\$response\""
 done
 ```
-
 Este script convierte los parámetros de la solicitud REST en el formato SOAP deseado y los envía como respuesta.
 
 **Paso 3: Ejecutar el Script Bash**

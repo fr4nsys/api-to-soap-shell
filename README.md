@@ -94,6 +94,11 @@ En mi caso el paquete que tengo instalado es `netcat-openbsd-1.89-92.3.1.x86_64`
 # Configura el puerto en el que escuchará el script (por ejemplo, puerto 8080)
 PORT=8080
 
+# Configura el host de la pasarela SMS y las credenciales de autorización
+SMS_GATEWAY_HOST="tu-pasarela-sms.com"
+AUTH_USERNAME="tu-usuario"
+AUTH_PASSWORD="tu-contraseña"
+
 # Función para convertir solicitud REST a SOAP
 convert_rest_to_soap() {
     local rest_request="$1"
@@ -105,8 +110,12 @@ convert_rest_to_soap() {
     texto=$(echo "$rest_request" | awk -F'&' '{print $4}' | cut -d'=' -f2 | sed 's/%20/ /g')
     telefonos=$(echo "$rest_request" | awk -F'&' '{print $5}' | cut-d'=' -f2)
 
-    # Construye la solicitud SOAP
+    # Construye la solicitud SOAP con los encabezados
     soap_request=$(cat <<EOL
+POST /ruta-de-la-pasarela-sms HTTP/1.1
+Host: $SMS_GATEWAY_HOST
+Authorization: Basic $(echo -n "$AUTH_USERNAME:$AUTH_PASSWORD" | base64)
+
 <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:men="edi/Telefonica/Mensaje">
    <soapenv:Header/>
    <soapenv:Body>
@@ -122,10 +131,10 @@ convert_rest_to_soap() {
 EOL
 )
 
-    echo "$soap_request"
+    echo -ne "$soap_request"
 }
 
-# Inicia el servidor web Bash en el puerto especificado con netcat-openbsd
+# Inicia el servidor web Bash en el puerto especificado
 while true; do
     # Escucha en el puerto y procesa las solicitudes
     {
@@ -137,8 +146,8 @@ while true; do
             fi
         done
         response=$(convert_rest_to_soap "$request")
-        echo -ne "HTTP/1.1 200 OK\r\nContent-Length: ${#response}\r\n\r\n$response"
-    } | nc -l -p "$PORT" -q 1
+        echo -ne "$response"
+    } | nc -l "$PORT" -q 1
 done
 
 ```

@@ -96,18 +96,28 @@ PORT=8080
 
 # Función para convertir solicitud REST a SOAP
 convert_rest_to_soap() {
-    # Implementa aquí la lógica de conversión de REST a SOAP
-    # Debes manipular la cadena XML según tus necesidades
+    local rest_request="$1"
+    
+    # Parsea los parámetros de la solicitud REST
+    produccion=$(echo "$rest_request" | awk -F'&' '{print $1}' | cut -d'=' -f2)
+    cod_aplicacion=$(echo "$rest_request" | awk -F'&' '{print $2}' | cut -d'=' -f2)
+    tipo_mensaje=$(echo "$rest_request" | awk -F'&' '{print $3}' | cut -d'=' -f2)
+    texto=$(echo "$rest_request" | awk -F'&' '{print $4}' | cut -d'=' -f2 | sed 's/%20/ /g')
+    telefonos=$(echo "$rest_request" | awk -F'&' '{print $5}' | cut-d'=' -f2)
 
-    # Ejemplo: Conversión simple de JSON a XML
+    # Construye la solicitud SOAP
     soap_request=$(cat <<EOL
-<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
-  <soapenv:Header/>
-  <soapenv:Body>
-    <sms:SendSms xmlns:sms="http://example.com/sms">
-      <sms:message>Hello, SMS Gateway!</sms:message>
-    </sms:SendSms>
-  </soapenv:Body>
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:men="edi/Telefonica/Mensaje">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <men:Mensaje>
+         <men:Produccion>$produccion</men:Produccion>
+         <men:CodAplicacion>$cod_aplicacion</men:CodAplicacion>
+         <men:TipoMensaje>$tipo_mensaje</men:TipoMensaje>
+         <men:Texto>$texto</men:Texto>
+         <men:Telefonos>$telefonos</men:Telefonos>
+      </men:Mensaje>
+   </soapenv:Body>
 </soapenv:Envelope>
 EOL
 )
@@ -128,8 +138,9 @@ while true; do
         done
         response=$(convert_rest_to_soap "$request")
         echo -ne "HTTP/1.1 200 OK\r\nContent-Length: ${#response}\r\n\r\n$response"
-    } | nc -l -p "$PORT"
+    } | nc -l -p "$PORT" -q 1
 done
+
 ```
 Este script debería funcionar con la implementación de `netcat` en OpenBSD, ya que utiliza un bucle `while` para recibir la solicitud REST y luego responder con la conversión SOAP correspondiente. Asegúrate de que el contenido de la función `convert_rest_to_soap()` esté configurado correctamente según tus necesidades específicas.
 
